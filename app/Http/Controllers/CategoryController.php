@@ -11,9 +11,9 @@ class CategoryController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $user = User::firstOrFail();
+        $user = $request->user();
         $categories = $user->categories;
 
         return response()->json($categories);
@@ -27,7 +27,7 @@ class CategoryController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
         ]);
-        $user = User::firstOrFail();
+        $user = $request->user();
         $category = $user->categories()->create($validated);
 
         return response()->json($category);
@@ -36,9 +36,9 @@ class CategoryController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Category $category)
+    public function show(Request $request, Category $category)
     {
-        $user = User::firstOrFail();
+        $user = $request->user();
         abort_unless($category->user_id == $user->id, 404);
 
         return response()->json($category);
@@ -49,7 +49,7 @@ class CategoryController extends Controller
      */
     public function update(Request $request, Category $category)
     {
-        $user = User::firstOrFail();
+        $user = $request->user();
         // return 404 if the user not releated to this cat he updating
         abort_unless($category->user_id == $user->id, 404);
         // validate updated name of cat
@@ -64,9 +64,9 @@ class CategoryController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Category $category)
+    public function destroy(Request $request, Category $category)
     {
-        $user = User::firstOrFail();
+        $user = $request->user();
         abort_unless($category->user_id == $user->id, 404);
         $category->delete();
 
