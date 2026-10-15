@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Task;
-use App\Models\User;
 use Illuminate\Http\Request;
 
 class TaskController extends Controller
@@ -14,7 +13,7 @@ class TaskController extends Controller
      */
     public function index()
     {
-        $user = User::firstOrFail();
+        $user = $request->user();
         $tasks = $user->tasks()
             ->with('category')
             ->get();
@@ -27,7 +26,7 @@ class TaskController extends Controller
      */
     public function store(Request $request)
     {
-        $user = User::firstOrFail();
+        $user = $request->user();
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -50,7 +49,7 @@ class TaskController extends Controller
      */
     public function show(Task $task)
     {
-        $user = User::firstOrFail();
+        $user = $request->user();
         abort_unless($task->user_id == $user->id, 404);
 
         return response()->json(
@@ -63,15 +62,15 @@ class TaskController extends Controller
      */
     public function update(Request $request, Task $task)
     {
-        $user = User::firstOrFail();
+        $user = $request->user();
 
         abort_unless($task->user_id == $user->id, 404);
 
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'category_id' => 'nullable|integer',
-            'due_date' => 'nullable|date',
+            'title' => 'sometimes|required|string|max:255',
+            'description' => 'sometimes|nullable|string',
+            'category_id' => 'sometimes|nullable|integer',
+            'due_date' => 'sometimes|nullable|date',
             'is_completed' => 'sometimes|boolean',
         ]);
         //
@@ -91,7 +90,7 @@ class TaskController extends Controller
      */
     public function destroy(Task $task)
     {
-        $user = User::firstOrFail();
+        $user = $request->user();
 
         abort_unless($task->user_id == $user->id, 404);
 
