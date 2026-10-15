@@ -2,16 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Category;
+use App\Http\Requests\TaskRequest;
 use App\Models\Task;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class TaskController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = $request->user();
         $tasks = $user->tasks()
@@ -24,24 +25,17 @@ class TaskController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(TaskRequest $request)
     {
         $user = $request->user();
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'category_id' => 'nullable|integer',
-            'due_date' => 'nullable|date',
-            'is_completed' => 'sometimes|boolean',
-        ]);
-        if (! empty($validated['category_id'])) {
-            Category::where('id', $validated['category_id'])
-                ->where('user_id', $user->id)
-                ->firstOrFail();
-        }
+        $validated = $request->validated();
+
         $task = $user->tasks()->create($validated);
 
-        return response()->json($task);
+        return response()->json(
+            $task->load('category'),
+            201
+        );
     }
 
     /**
@@ -49,8 +43,7 @@ class TaskController extends Controller
      */
     public function show(Task $task)
     {
-        $user = $request->user();
-        abort_unless($task->user_id == $user->id, 404);
+        Gate::authorize('view', $task);
 
         return response()->json(
             $task->load('category')
@@ -60,40 +53,25 @@ class TaskController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Task $task)
+    public function update(TaskRequest $request, Task $task)
     {
-        $user = $request->user();
+        Gate::authorize('update', $task);
 
-        abort_unless($task->user_id == $user->id, 404);
-
-        $validated = $request->validate([
-            'title' => 'sometimes|required|string|max:255',
-            'description' => 'sometimes|nullable|string',
-            'category_id' => 'sometimes|nullable|integer',
-            'due_date' => 'sometimes|nullable|date',
-            'is_completed' => 'sometimes|boolean',
-        ]);
-        //
-        if (! empty($validated['category_id'])) {
-            Category::where('id', $validated['category_id'])
-                ->where('user_id', $user->id)
-                ->firstOrFail();
-        }
+        $validated = $request->validated();
 
         $task->update($validated);
 
-        return response()->json($task);
+        return response()->json(
+            $task->load('category')
+        );
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Task $task)
+    public function destroy(Task $task, Request $request)
     {
-        $user = $request->user();
-
-        abort_unless($task->user_id == $user->id, 404);
-
+        Gate::authorize('delete', $task);
         $task->delete();
 
         return response()->noContent();
