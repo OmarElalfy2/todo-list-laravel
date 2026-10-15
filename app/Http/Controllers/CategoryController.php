@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\CategoryRequest;
 use App\Models\Category;
-use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class CategoryController extends Controller
 {
@@ -22,15 +23,13 @@ class CategoryController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(CategoryRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-        ]);
+        $validated = $request->validated();
         $user = $request->user();
         $category = $user->categories()->create($validated);
 
-        return response()->json($category);
+        return response()->json($category, 201);
     }
 
     /**
@@ -38,8 +37,7 @@ class CategoryController extends Controller
      */
     public function show(Request $request, Category $category)
     {
-        $user = $request->user();
-        abort_unless($category->user_id == $user->id, 404);
+        Gate::authorize('view', $category);
 
         return response()->json($category);
     }
@@ -47,15 +45,12 @@ class CategoryController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Category $category)
+    public function update(CategoryRequest $request, Category $category)
     {
-        $user = $request->user();
-        // return 404 if the user not releated to this cat he updating
-        abort_unless($category->user_id == $user->id, 404);
-        // validate updated name of cat
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-        ]);
+        Gate::authorize('update', $category);
+
+        $validated = $request->validated();
+
         $category->update($validated);
 
         return response()->json($category);
@@ -66,8 +61,7 @@ class CategoryController extends Controller
      */
     public function destroy(Request $request, Category $category)
     {
-        $user = $request->user();
-        abort_unless($category->user_id == $user->id, 404);
+        Gate::authorize('delete', $category);
         $category->delete();
 
         return response()->noContent();
