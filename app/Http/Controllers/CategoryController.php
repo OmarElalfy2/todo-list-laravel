@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\CategoryRequest;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 class CategoryController extends Controller
@@ -62,7 +63,10 @@ class CategoryController extends Controller
     public function destroy(Request $request, Category $category)
     {
         Gate::authorize('delete', $category);
-        $category->delete();
+        DB::transaction(function () use ($category) {
+            $category->tasks()->delete();
+            $category->delete();
+        });
 
         return response()->noContent();
 
